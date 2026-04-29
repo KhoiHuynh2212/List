@@ -22,3 +22,5 @@ typedef struct Node {
 Node* create_int_node(int data);
 Node* create_double_node(double data);
 Node* create_string_node(char* data);
+void insertIntNode(Node ** head, int data);
+void display(Node* head);
