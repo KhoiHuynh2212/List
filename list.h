@@ -1,3 +1,9 @@
+#ifndef LIST_H
+#define LIST_H
+
+#include <string.h>  
+#include <stdlib.h>
+
 typedef enum node_kind_t {
     INTEGER = 0, 
     DOUBLE = 1,
@@ -19,8 +25,10 @@ typedef struct Node {
 
 } Node; 
 
-Node* create_int_node(int data);
-Node* create_double_node(double data);
-Node* create_string_node(char* data);
 void insertIntNode(Node ** head, int data);
+void insertStringNode(Node ** head, char* data);
+void deleteIntNode(Node** head, int value);
+void free_list(Node* head);
 void display(Node* head);
+
+#endif
