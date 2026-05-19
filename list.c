@@ -66,65 +66,67 @@ void insertStringNode(Node **head, char* data) {
     }
 }
 // Assumes homogeneous list — all nodes share the same kind as head
-void free_list(Node* head) {
-    Node* temp = head;
-
-    if(head == NULL) {
-        return;
-    }
-    // Free nodes based on their kind
-    switch (temp->kind)
-   {
-   case STRING:
-    while(temp != NULL) {
-        Node* nextNode = temp->next;
-        free(temp->data.node_string);
+void free_list(Node** head) {
+  Node* temp = *head;
+    while (temp != NULL) {
+        Node* next = temp->next;
+        if (temp->kind == STRING)
+            free(temp->data.node_string);
         free(temp);
-        temp = nextNode;
+        temp = next;
     }
-    break;
-   case INTEGER:
-   case DOUBLE:
-   case FLOAT:
-
-    while(temp != NULL) {
-        Node* nextNode = temp->next;
-        free(temp);
-        temp = nextNode;
-    }
-    break;
-   }
+    *head = NULL;   // prevents use-after-free
 } 
-
 
 void deleteIntNode(Node** head, int value){
 
-    if(*head == NULL) {
-        return;
-    }  
-    
-    // head is the target
-    if(*head != NULL && (*head)->kind ==INTEGER && (*head)->data.node_int == value) {
-        Node* temp = *head;
-        *head = (*head)->next;
-        free(temp);
-        return;
-    } 
+    Node** curr = head;
 
-
-    Node* prev = *head;
-    Node* temp = (*head)->next;
-    while(temp != NULL) {
-        if(temp->data.node_int == value) {
-            prev->next = temp->next;
+    while(*curr != NULL) {
+        if((*curr)->data.node_int == value) {
+            Node* temp = (*curr);
+            (*curr) = (*curr)->next;
             free(temp);
             return;
-        } else {
-            prev = temp;
-            temp = temp->next;
         }
+        curr = &(*curr)->next;
     }
-        
+} 
+
+int deleteStringNode(Node** head, char* str) {
+    Node** curr = head;
+
+    while(*curr != NULL) {
+        if(strcmp((*curr)->data.node_string, str) == 0) {
+            Node* temp = (*curr);
+            (*curr) = (*curr)->next;
+            free(temp->data.node_string);
+            free(temp); 
+            return 1;
+        }
+        curr = &(*curr)->next;
+    }
+    return 0;
+} 
+
+Node* searchString(Node* head, const char* str) {
+    Node* curr = head;
+    while (curr != NULL) {
+        if (curr->kind == STRING && strcmp(curr->data.node_string, str) == 0)
+            return curr;   // found — return pointer to the node
+        curr = curr->next;
+    }
+    return NULL;           // not found
+}
+
+Node* searchInt(Node* head,int key) {
+    Node* curr = head;
+    while (curr != NULL) {
+        if (curr->kind == INTEGER && curr->data.node_int == key)
+            return curr;   // found — return pointer to the node
+        curr = curr->next;
+    }
+    return NULL;           // not found
 }
 
 
