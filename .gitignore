@@ -1,0 +1,11 @@
+# compiled binaries
+test
+bench
+bench_fast
+buggy
+
+# object files
+*.o
+
+# debug info
+*.dSYM/

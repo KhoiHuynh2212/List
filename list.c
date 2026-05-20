@@ -78,32 +78,34 @@ void free_list(Node** head) {
     *head = NULL;   // prevents use-after-free
 } 
 
-void deleteIntNode(Node** head, int value){
+int deleteIntNode(Node** head, int value){
 
     Node** curr = head;
 
     while(*curr != NULL) {
-        if((*curr)->data.node_int == value) {
+        if((*curr)->kind == INTEGER && (*curr)->data.node_int == value) {
             Node* temp = (*curr);
             (*curr) = (*curr)->next;
             free(temp);
-            return;
+            return 1;
         }
         curr = &(*curr)->next;
     }
+    return 0;
 } 
 
 int deleteStringNode(Node** head, char* str) {
     Node** curr = head;
 
     while(*curr != NULL) {
-        if(strcmp((*curr)->data.node_string, str) == 0) {
+
+        if((*curr)->kind == STRING && strcmp((*curr)->data.node_string, str) == 0) {
             Node* temp = (*curr);
             (*curr) = (*curr)->next;
             free(temp->data.node_string);
             free(temp); 
-            return 1;
-        }
+            return 1 ;
+        } 
         curr = &(*curr)->next;
     }
     return 0;
