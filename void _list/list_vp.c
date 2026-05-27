@@ -50,16 +50,15 @@ void insertEnd(Node** head, void* data, size_t size) {
     if(*head == NULL) {
         *head = newNode;
     } else {
-        // head insertion 
+    
         Node* first = *head;
 
-        while(first->prev != NULL) {
-            first = first->prev;
+        while(first->next != NULL) {
+            first = first->next;
         } 
 
-        first->prev = newNode;
-        newNode->next = first;
-        *head = newNode;
+        first->next = newNode;
+        newNode->prev = first;
        
     }
 }
@@ -119,11 +118,34 @@ Node* searchNode(Node*head, void*data, int(*cmp)(void*, void*)) {
     return NULL;
 }
 
-// COMPARATOR 
-int cmp_int(void* v1, void* v2) {
-    return *(int*)v1 == *(int*)v2;
-} 
+Node* reverse(Node**head) {
+    Node* curr = *head;
+    Node* temp = NULL;
+    // edge case
+    if(curr == NULL || curr->next == NULL) {
+        return curr;
+    } 
 
-int cmp_str(void*a , void* b) {
-    return strcmp((char*) a, (char*) b) == 0;
+    Node *last = NULL;
+    while (curr != NULL) {
+        temp = curr->prev;
+        curr->prev = curr->next;
+        curr->next = temp;
+
+        last = curr;       
+        curr = curr->prev;
+    }
+    *head = last;
+
+    return *head;
+}
+
+int count(Node*head) {
+    int cnt = 0;
+    Node* temp = head;
+    while(temp != NULL) {
+        cnt++;
+        temp = temp->next;
+    }
+    return cnt;
 }

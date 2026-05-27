@@ -9,7 +9,6 @@
         printf("FAIL %s\n", name);\
 } while(0)     
 
-static int failure = 0;
 
 // assume mixed list
 void testDeleteStringNode() {
@@ -30,7 +29,9 @@ void testDeleteStringNode() {
 
     free_list(&head);
     
-}
+} 
+
+
 int main() {
     printf("tests running\n");
     testDeleteStringNode();

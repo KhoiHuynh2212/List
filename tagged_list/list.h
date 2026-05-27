@@ -20,6 +20,7 @@ typedef union node_data {
 
 typedef struct Node {
     struct Node * next;
+    struct Node * prev; 
     node_kind_t kind;
     node_data data;
 
