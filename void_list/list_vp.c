@@ -73,7 +73,7 @@ void free_list(Node**head) {
     
         curr = next;
     }
-
+    // prevent use after free 
     *head = NULL;
 } 
 

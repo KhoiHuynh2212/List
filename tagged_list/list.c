@@ -84,35 +84,59 @@ void free_list(Node** head) {
 } 
 
 int deleteIntNode(Node** head, int value) {
-    Node** curr = head;
+    Node* curr = *head;
 
-    while (*curr != NULL) {
-        Node* node = *curr;  // the node curr is pointing at
+    while(curr != NULL) {
+        Node* node = curr;
+        if(node->kind == INTEGER && node->data.node_int == value) {
+            if(node->prev != NULL) {
+                node->prev->next = node->next;
+            } else {
+                *head = node->next;
+            } 
 
-        if (node->kind == INTEGER && node->data.node_int == value) {
-            *curr = node->next;  // rewrite the arrow to skip this node
+            if(node->next != NULL) {
+                node->next->prev = node->prev;
+            } 
+
             free(node);
             return 0;
         }
 
-        curr = &node->next;  // move to the next arrow
-    }
+        curr = curr->next;
+    } 
+
     return -1;
 }
 
 int deleteStringNode(Node** head, char* str) {
-    Node** curr = head;
+    Node* curr = *head;
 
-    while(*curr != NULL) {
-        Node* node = *curr; 
+    while(curr != NULL) {
+        Node* node = curr; 
         if(node->kind == STRING && strcmp(node->data.node_string, str) == 0) {
-           *curr = node->next;
+            
+            if(node->prev != NULL) {
+                node->prev->next = node->next;
+            } else {
+                // if the previous is null, this is head -> make head to become next node 
+                *head = node->next;
+            } 
+
+            
+            if(node->next != NULL) {
+                node->next->prev = node->prev;
+            }
+
             free(node->data.node_string);
             free(node); 
+
             return 0 ;
         } 
-        curr = &node->next;
+        curr = curr->next;
     }
+
+    // return -1 when not found 
     return -1;
 } 
 

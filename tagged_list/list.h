@@ -26,14 +26,17 @@ typedef struct Node {
 
 } Node; 
 
+// insert
 void insertIntNode(Node ** head, int data);
 void insertStringNode(Node ** head, char* data);
-
+// delete
 int deleteIntNode(Node** head, int value);
 int deleteStringNode(Node** head, char* str);
+
 void free_list(Node** head);
 void display(Node* head);
 
+// search
 Node* searchString(Node* head, const char* str);
 Node* searchInt(Node* head, int val);
 
