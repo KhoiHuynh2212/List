@@ -4,6 +4,10 @@
 #include<list_vp.h> 
 
 Node* list_init(void*data, size_t size) {
+    if(data == NULL) {
+        fprintf(stderr, "No data to hold");
+        return NULL;
+    }
     Node* node = malloc(sizeof(Node)); 
     if(node == NULL) {
         fprintf(stderr, "Memory allocation failed in list_init");
@@ -27,86 +31,146 @@ Node* list_init(void*data, size_t size) {
 }
 
 void list_insertBegin(Node **head, void*data, size_t size) {
+
+    if(head == NULL || data == NULL) {
+        return;
+    }
+    Node* newNode = list_init(data,size);
+
+    if (newNode == NULL) {
+        return; 
+    }
+    // check if head is null
     if(*head == NULL) {
-        Node* newNode = list_init(data,size); 
         *head = newNode;
     } else {
-
-    Node* first = *head;
-    Node* newNode = malloc(sizeof(Node)); 
-    if(newNode == NULL) {
-        fprintf(stderr, "Memory allocation failed insertHead");
-        return;
-    } 
-
-    newNode->data = malloc(size); 
-    if(newNode->data == NULL) {
-        fprintf(stderr, "Memory allocation failed in insertHead");
-        free(newNode);
-        return;
-    } 
-
-    // copy the data into the node 
-    memcpy(newNode->data,data,size);
+        Node* first = *head;
+        Node* last = first->prev;
     
-    Node* last = first->prev;
-    
-    newNode->next = first;
-    newNode->prev = last; 
-    last->next = newNode;
-    first->prev = newNode;
+        newNode->next = first;
+        newNode->prev = last; 
+        last->next = newNode;
+        first->prev = newNode;
 
-    // update new node 
-    *head = newNode;
+         // update new node 
+         *head = newNode;
     }
 }
 
 void list_insertTail(Node **head, void*data, size_t size) {
 
+    if(head == NULL || data == NULL) {
+        return;
+    }
+    Node* newNode = list_init(data,size);
+
+    if (newNode == NULL) {
+        return; 
+    }
+    // check if head is null
     if(*head == NULL) {
-        Node* newNode = list_init(data,size);
         *head = newNode;
-    }  
-;
-    Node* newNode = malloc(sizeof(Node)); 
-    if(newNode == NULL) {
-        fprintf(stderr, "Memory allocation failed insertHead");
+    }  else {
+
+        Node* first = *head;
+        Node* last = first->prev;
+
+        newNode->next = first;
+        newNode->prev = last; 
+        last->next = newNode;
+        first->prev = newNode;
+         // no update head here 
+    }
+} 
+
+
+
+void list_insertMid(Node* ptr, void*data, size_t size) { 
+    if(ptr == NULL || data == NULL){
         return;
     } 
+    // [head]-->[1]-->[inset here]-->[3]
+    Node *newNode = list_init(data,size); 
+    
+    Node* nextcurrNode = ptr->next;
 
-    newNode->data = malloc(size); 
-    if(newNode->data == NULL) {
-        fprintf(stderr, "Memory allocation failed in insertHead");
-        free(newNode);
-        return;
-    } 
+    newNode->next = nextcurrNode;
+    newNode->prev = ptr; 
 
-    // copy the data into the node 
-    memcpy(newNode->data,data,size); 
+    nextcurrNode->prev = newNode; 
+    ptr->next = newNode;
 
-    Node* first = *head;
-    Node* last = first->prev;
-
-    newNode->next = first;
-    newNode->prev = last; 
-    last->next = newNode;
-    first->prev = newNode;
-
-    // no update head here 
-}
+} 
 
 // free entire list and each node data
 void free_list(Node**head) {
+    if(head == NULL || *head == NULL) {
+        printf("Empty list \n");
+        return;
+    }
+    Node* curr = *head;
+    Node* temp = *head; // keep one pointer to read a value to avoid dangling pointer
+    Node* next = NULL; 
+    do {
+        next = curr->next; 
+        free(curr->data);
+        free(curr);   
+        curr = next;
+    } while(curr != temp); 
 
+    *head = NULL;
 } 
 
 /* The caller define comparator */
 int deleteNode(Node**head, void* key, int(*cmp)(void*, void*)) {
+    if(head == NULL || key == NULL || *head == NULL || cmp == NULL) {
+        return 0; 
+    } 
 
+    Node* curr = *head;
+    Node* first = *head;
+
+    do {
+        if(cmp(curr->data, key) == 0) {
+
+        if(curr->next = curr) {
+            *head = NULL;
+        } else {
+            curr->next->prev = curr->prev;
+            curr->prev->next = curr->next; 
+
+        }
+        
+        if(curr == *head) {
+            *head = curr->next;
+        }
+
+        if(curr->data != NULL) {
+            free(curr->data);
+        }
+        free(curr);
+        curr = curr->next;
+            return 1;
+        }
+    } while(curr != first);
+    
+    return -1;
 } 
 
 Node* searchNode(Node*head, void*data, int(*cmp)(void*, void*)) {
+    if(head == NULL || data == NULL || cmp == NULL) {
+        return NULL; 
+    }  
 
+    Node* curr = head;
+    do {
+        if(cmp(curr->data, data) == 0) {
+            return curr;
+        }
+        curr = curr->next;
+    } while(curr != head);
+
+    return NULL;
 }
 
 Node* reverse(Node**head) {
@@ -116,42 +180,26 @@ Node* reverse(Node**head) {
 int count(Node*head) {
     int cnt = 0;
     Node* temp = head;
-    while(temp != NULL) {
+    do {
         cnt++;
         temp = temp->next;
-    }
+    } while(temp != head);
     return cnt;
 }
 
-void display_ints(Node* head) {
-    if (head == NULL) return;
-
+void display_list(Node* head, void (*fptr)(void*)) {
+    if (head == NULL) {
+        printf("List is empty");
+        return;
+    }
     Node* temp = head;
     do {
-        // FIX: Cast void* to int*, then dereference with *
-        int value = *(int*)(temp->data);
-        printf("%d ", value);
-        
+        (*fptr)(temp->data);   
         temp = temp->next;
     } while(temp != head);
     
     printf("\n");
-}
+} 
 
-int main() {
 
-    Node* head = NULL; 
 
-    int a = 10;
-    int b = 20; 
-    int c = 30;
-    list_insertBegin(&head,&a,sizeof(int)); 
-    list_insertBegin(&head,&b,sizeof(int));
-    list_insertBegin(&head,&c,sizeof(int)); 
-
-    display_ints(head); 
-    int value = *(int *)(head->data);
-    printf("%d \n", value);
-
-    free(head); 
-}

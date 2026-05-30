@@ -4,7 +4,7 @@
 
 typedef struct Node {
     size_t size;
-    void* data;
+    void* data;                 
     struct Node *next;
     struct Node *prev;
 } Node;
@@ -12,12 +12,12 @@ typedef struct Node {
 Node* list_init(void*data, size_t size);
 void list_insertTail(Node **head, void*data, size_t size);
 void list_insertBegin(Node **head, void*data, size_t size);
-void insertMid(Node**head, void*data, size_t size, int pos);
+void list_insertMid(Node**node_ptr, void*data, size_t size);
 void free_list(Node**head);
 int deleteNode(Node**head, void* key, int(*cmp)(void*, void*)); // The caller handle cmp
 Node* searchNode(Node*head, void*data, int(*cmp)(void*, void*)); 
 Node* reverse(Node**head);
 
-void display_ints(Node*head);
+void display_list(Node*head, void (*fptr)(void*));
 int count(Node*head);
-#endif /*LIST_H*/
+#endif /*LIST_H*/ 

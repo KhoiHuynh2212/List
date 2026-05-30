@@ -3,6 +3,25 @@ CFLAGS  = -Wall -Wextra
 DEBUG   = -g
 RELEASE = -O2
 
+ASAN_FLAGS = -fsanitize=address,undefined -g3 
+
+ASAN_RUN   = ASAN_OPTIONS=detect_leaks=0 
+
+listvp: 
+	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I void_list/ -o main.out main.c void_list/list_vp.c
+	@echo "--- RUNNING MOTHER SANDBOX--"
+	@$(ASAN_RUN) ./main.out				
+
+listvp_leak:
+	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I void_list/ -o main.out main.c void_list/list_vp.c
+	@echo "--- RUNNING MOTHER SANDBOX WITH ASAN LEAK CHECK --"
+	./main.out	
+
+listvp_valgrind:
+	$(CC) $(CFLAGS) $(DEBUG) -I void_list/ -o main.out main.c void_list/list_vp.c
+	@echo "--- RUNNING MOTHER SANDBOX WITH VALGRIND ---"
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./main.out
+
 test_tagged:
 	$(CC) $(CFLAGS) $(DEBUG) -I tagged_list/ -o tagged_list/test tagged_list/test.c tagged_list/list.c
 	./tagged_list/test
