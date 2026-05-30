@@ -12,7 +12,7 @@ typedef struct Node {
 Node* list_init(void*data, size_t size);
 void list_insertTail(Node **head, void*data, size_t size);
 void list_insertBegin(Node **head, void*data, size_t size);
-void list_insertMid(Node**node_ptr, void*data, size_t size);
+void list_insertMid(Node*node_ptr, void*data, size_t size);
 void free_list(Node**head);
 int deleteNode(Node**head, void* key, int(*cmp)(void*, void*)); // The caller handle cmp
 Node* searchNode(Node*head, void*data, int(*cmp)(void*, void*)); 

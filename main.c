@@ -12,12 +12,12 @@ int main() {
 
     Node* head = NULL; 
 
-    Node* rs = NULL;
-    int b = 20; 
-    int c = 30;
-    list_insertBegin(&head,&rs,sizeof(int)); 
-    list_insertBegin(&head,&b,sizeof(int));
-    list_insertBegin(&head,&c,sizeof(int)); 
+    int a = 10;
+   // int b = 20; 
+   // int c = 30;
+    list_insertBegin(&head,&a,sizeof(int)); 
+    // list_insertBegin(&head,&b,sizeof(int));
+    // list_insertBegin(&head,&c,sizeof(int));
 
     int d = 100;
     int e = 200;
@@ -26,11 +26,14 @@ int main() {
     list_insertTail(&head,&e, sizeof(int));
     list_insertTail(&head,&f, sizeof(int));
 
-    int ee = 900;
-    list_insertBegin(&head, &ee, sizeof(int));
+    printf("Before reverse :");
     display_list(head,printInt); 
-    int value = *(int *)(head->data);
-    printf("%d \n", value);
 
+    reverse(&head);
+    printf("After reverse: ");
+    display_list(head,printInt);
+
+
+    printf("Head previous value %d\n ", *(int*)(head->prev->data));
     free_list(&head);
 }
