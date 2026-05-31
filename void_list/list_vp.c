@@ -31,10 +31,11 @@ Node *list_init(void *data, size_t size)
     // point to itself
     node->next = node;
     node->prev = node;
+    node->size = size;
     return node;
 }
 
-void list_insertBegin(Node **head, void *data, size_t size)
+void insertHead(Node **head, void *data, size_t size)
 {
 
     if (head == NULL || data == NULL)
@@ -67,7 +68,7 @@ void list_insertBegin(Node **head, void *data, size_t size)
     }
 }
 
-void list_insertTail(Node **head, void *data, size_t size)
+void insertEnd(Node **head, void *data, size_t size)
 {
 
     if (head == NULL || data == NULL)
@@ -128,7 +129,6 @@ void free_list(Node **head)
 {
     if (head == NULL || *head == NULL)
     {
-        printf("Empty list \n");
         return;
     }
     Node *curr = *head;
@@ -150,7 +150,7 @@ int deleteNode(Node **head, void *key, int (*cmp)(void *, void *))
 {
     if (head == NULL || key == NULL || *head == NULL || cmp == NULL)
     {
-        return 0;
+        return -1;
     }
 
     Node *curr = *head;
@@ -158,7 +158,7 @@ int deleteNode(Node **head, void *key, int (*cmp)(void *, void *))
 
     do
     {
-        if (cmp(curr->data, key) == 0)
+        if (cmp(curr->data, key))
         {
 
             if ((curr->next) == curr)
@@ -182,7 +182,7 @@ int deleteNode(Node **head, void *key, int (*cmp)(void *, void *))
             }
 
             free(curr);
-            return 1;
+            return 0;
         }
 
         curr = curr->next;
@@ -201,7 +201,7 @@ Node *searchNode(Node *head, void *data, int (*cmp)(void *, void *))
     Node *curr = head;
     do
     {
-        if (cmp(curr->data, data) == 0)
+        if (cmp(curr->data, data))
         {
             return curr;
         }

@@ -45,5 +45,6 @@ Node *searchInt(Node* head, int val);
 Node *searchFloat (Node *head, float key);
 Node *searchDouble(Node *head, double key);
 
-
+//reverse
+void reverse(Node**head);
 #endif

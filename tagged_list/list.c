@@ -133,7 +133,13 @@ void insertDoubleNode(Node **head, double data)
 }
 
 void free_list(Node **head)
-{
+{   
+
+    if(head == NULL || *head == NULL) {
+        if(head) *head = NULL;
+        return; 
+    }
+    
     Node *temp = *head;
     Node *first = *head;
     do
@@ -294,9 +300,11 @@ Node *searchString(Node *head, const char *str)
 
 Node *searchInt(Node *head, int key)
 {   
-    if(head == NULL ) {
+    if(head == NULL) {
+        printf("Pointer is null");
         return NULL;
     }
+
     Node *curr = head;
     do {
         if (curr->kind == INTEGER && curr->data.node_int == key)
