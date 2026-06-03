@@ -1,13 +1,3 @@
-/*
- * bench_vp.c — p50/p95/p99 latency benchmark for circular doubly-linked void* list
- *
- * WHY BATCHING: clock_gettime has a hardware tick floor (often 1-2 µs on VMs/WSL).
- * Operations faster than the floor always read as the same constant.
- * Fix: wrap BATCH ops in one clock sandwich, divide by BATCH.
- *
- * Compile:
- *   gcc -I. -O2 -o bench_vp bench_vp.c list_vp.c
- */
 
 #define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
