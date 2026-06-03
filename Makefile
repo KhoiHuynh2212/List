@@ -31,7 +31,7 @@ valgrind_macro:
 	valgrind --leak-check=full --track-origins=yes ./list/test_macro
 
 bench_macro:
-	$(CC) $(CFLAGS) $(RELEASE) -I list/ -o list/bench_macro list/bench_macro.c 
+	$(CC) $(CFLAGS) $(RELEASE) -I list/ -o list/bench_macro list/bench_macro.c
 	./list/bench_macro
 
 test_tagged:
@@ -43,7 +43,7 @@ valgrind_tagged:
 	valgrind --leak-check=full --track-origins=yes ./tagged_list/test
 
 bench_tagged:
-	$(CC) $(CFLAGS) $(RELEASE) -I tagged_list/ -o tagged_list/bench tagged_list/tagged_bench.c tagged_list/tagged_list.c
+	$(CC) $(CFLAGS) $(RELEASE) -I tagged_list/ -o tagged_list/tagged_bench tagged_list/tagged_bench.c tagged_list/tagged_list.c
 	./tagged_list/tagged_bench
 
 test_vp:
@@ -59,4 +59,4 @@ bench_vp:
 	./void_list/bench
 
 clean:
-	rm -f tagged_list/test tagged_list/bench void_list/test void_list/bench
+	rm -f tagged_list/test tagged_list/tagged_bench void_list/test_vp void_list/bench_vp list/bench_macro list/test_macro

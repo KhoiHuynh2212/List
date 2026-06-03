@@ -126,7 +126,7 @@
                                                                        \
         if (*head == NULL)                                             \
         {                                                              \
-            printf("List is empty\n");                                 \
+            return;                                                    \
         }                                                              \
                                                                        \
         T##Node *curr = *head;                                         \
@@ -305,7 +305,7 @@
 // this list_node is for writing before convert to macro
 typedef struct list_node
 {
-    void *data;
+    void *data; // convert to data types you want, dont call malloc here
     struct list_node *next;
     struct list_node *prev;
 } node;

@@ -1,106 +1,71 @@
 CONTEXT: Systems programming internship prep, Summer 2026 → Winter internship goal.
 
 ## Current Project: libds (C data structures library)
-Phase 1 of 4. Building 3 implementations of a linked list to benchmark against each other:
-1. Tagged union ✓ → 2. void* ✓ → 3. Macro-generic + arena allocator ← YOU ARE HERE
+Phase 1 of 4. Building 4 implementations of a linked list to benchmark against each other:
+1. Tagged union ✅ → 2. void* ✅ → 3. Macro-generic ✅ → 4. Intrusive + arena allocator
 
----
-
-## Tagged Union List — DONE
+## Tagged Union List — COMPLETE
 File: tagged_list/list.h + list.c
-- insertIntNode, insertStringNode
-- display (switch inside loop, handles mixed types)
-- free_list (checks kind == STRING before freeing node_string)
-- deleteIntNode, deleteStringNode (doubly linked, curr->prev rewiring)
-- searchInt, searchString (return Node*, NULL on miss)
-- test.c: full correctness suite, all pass, 0 Valgrind errors
-- bench.c: p50/p95/p99 harness
+- insertIntNode, insertStringNode, display, free_list
+- deleteIntNode, deleteStringNode, searchInt, searchString
+- test.c: 25/25 pass, 0 Valgrind errors
+- bench_fast.c: p50/p95/p99 baseline numbers recorded
 
-### Tagged Union Benchmark Results (N=10000, -O2)
-```
-insertIntNode              p50=18ns  p95=19ns  p99=19ns
-insertStringNode (short)   p50=22ns  p95=22ns  p99=23ns
-insertStringNode (long)    p50=29ns  p95=31ns  p99=31ns
-deleteIntNode (head hit)   p50=25ns  p95=28ns  p99=29ns
-deleteIntNode (tail hit)   p50=30ns  p95=31ns  p99=32ns
-deleteIntNode (miss)       p50=22ns  p95=23ns  p99=23ns
-deleteStringNode (hit)     p50=22ns  p95=23ns  p99=23ns
-deleteStringNode (miss)    p50=18ns  p95=20ns  p99=20ns
-searchInt (head hit)       p50=14ns  p95=16ns  p99=16ns
-searchInt (tail hit)       p50=27ns  p95=28ns  p99=29ns
-searchInt (miss)           p50=24ns  p95=25ns  p99=26ns
-searchString (tail hit)    p50=19ns  p95=19ns  p99=20ns
-searchString (miss)        p50=17ns  p95=17ns  p99=18ns
-```
-
----
-
-## void* List — DONE
+## void* List — COMPLETE
 File: void_list/list_vp.h + list_vp.c
-- insertEnd, insertHead
-- deleteNode (comparator callback: int (*cmp)(void*, void*))
-- searchNode (comparator callback)
-- reverse (track last node visited for new head)
-- free_list (always free(data), no kind check needed)
-- test_vp.c: full correctness suite, all pass, 0 Valgrind errors
-- bench_vp.c: same p50/p95/p99 harness
+- insert (memcpy), free_list, deleteNode (cmp callback)
+- bench_vp.c: baseline numbers recorded
 
-### void* Benchmark Results (N=10000, -O2)
-```
-insertEnd                  p50=21ns  p95=22ns  p99=22ns
-insertHead                 p50=35ns  p95=37ns  p99=37ns
-deleteNode (hit)           p50=67ns  p95=77ns  p99=78ns
-deleteNode (miss)          p50=23ns  p95=45ns  p99=47ns
-searchNode (head)          p50=16ns  p95=20ns  p99=20ns
-searchNode (tail)          p50=18ns  p95=19ns  p99=20ns
-searchNode (miss)          p50=22ns  p95=30ns  p99=37ns
-reverse (10 nodes)         p50=30ns  p95=35ns  p99=38ns
-```
+## Macro-Generic List — COMPLETE
+File: list/list.h
+- DEFINE_LIST(T) — stamps out full typed implementation per type
+- DEFINE_LIST_STRING — separate macro for string (strdup/strcmp/free special cases)
+- Functions generated: T##_create, T##_insert, T##_delete_node, T##_search,
+  T##_display (print_fn callback), T##_free_list, T##_reverse
+- str_create, str_insert, str_delete, str_search, str_display,
+  str_free_list, str_reverse
+- test_macro.c: 56/56 pass, 0 Valgrind errors
+- bench_macro.c: p50/p95/p99 numbers recorded
 
-### void* vs Tagged Union — Key Findings
-- deleteNode hit is 2-3x slower (67ns vs 25-30ns) — function pointer indirect call overhead
-- deleteNode miss p99 spikes to 47ns vs tagged 23ns — 10 cmp callback calls stack up
-- searchNode tail is faster (18ns vs 27ns) — no kind check before compare
-- insertEnd comparable (21ns vs 18ns) — same malloc cost
-- insertHead 35ns — extra prev pointer write causes cache miss
+## Bugs Found and Fixed During Macro Phase
+- T## with space: `T## init` → `T##_init` (space breaks token paste)
+- `node` used inside macro instead of `T##Node`
+- `free_list` not prefixed with `T##_` → duplicate symbol across types
+- `display` missing semicolon after printf — curr = curr->next swallowed as arg
+- `free_list` fell through into do-loop on empty list — missing return
+- `display` used `%d` hardcoded — broke for float, fixed with print_fn callback
+- `searchNode` not type-prefixed — duplicate symbol across types
 
-### Design Tradeoffs Learned
-- void* genericity costs ~2x on delete due to function pointer indirection
-- Indirect call hurts branch predictor — CPU can't predict function pointer target
-- Tagged union pays kind check on every search node — extra branch
-- void* free_list simpler — always free(data), no type check needed
-- Linus Node** technique compensates for no prev in singly linked list
-- Doubly linked list: curr->prev replaces need for Node** traversal
-
----
-
-## Tooling
-- Makefile at root: make test_tagged, make valgrind_tagged, make bench_tagged, same for _vp
-- Return convention: 0 on hit, -1 on miss
-- _POSIX_C_SOURCE 199309L needed for CLOCK_MONOTONIC on Linux
-
----
+## Key Concepts Learned
+- ## token pasting, ## with spaces breaks it
+- static inline required on all macro functions — prevents duplicate symbol errors
+- gcc -E main.c | grep -v "^#" — see exactly what macro expanded to
+- typedef char* string → DEFINE_LIST(string) — workaround for pointer types
+- String needs own macro: strdup on create, strcmp on search/delete, free(data) on delete
+- display is not type-agnostic — needs print_fn callback or separate macro per type
+- reverse/free are type-agnostic — only touch next/prev, same code for all types
+- sentinel node — dummy head, makes empty and non-empty list code identical
+- circular_ok helper — verify next->prev == node && prev->next == node after every op
+- IntelliSense shows red underline on generated types — normal, trust gcc not IntelliSense
 
 ## Testing Knowledge Gained
-- CHECK macro with do{}while(0) to avoid dangling else bug
-- Four test categories: happy path, boundaries, miss case, after-effects
-- Valgrind workflow: compile with -g → valgrind --leak-check=full --track-origins=yes
-- free_list(&head) required at end of every test or Valgrind reports leak
-- Makefile indentation must be tabs not spaces
+- CHECK macro with do{}while(0)
+- circular_ok() helper — walks entire list verifying both pointer directions
+- count() helper — walk the ring counting nodes, verify after every insert/delete
+- Four test categories: happy path, boundaries (single/two element), miss case, after-effects
+- Edge cases: empty list, single element, delete head, delete tail, delete only, duplicates,
+  reverse empty, reverse single, reverse twice = original, empty string value
+- Valgrind: gcc -g → valgrind --leak-check=full --track-origins=yes ./test_macro
 
----
+## Phase 4: Intrusive List + Arena Allocator
+Next implementation:
+- Embed list_node_t inside user struct, recover via container_of + offsetof
+- Arena allocator: one big malloc upfront, bump pointer for each node, one free at end
+- Same test/bench harness for apples-to-apples comparison
+- Expected: zero per-node heap allocation, best cache locality, lowest p99
 
-## Phase 1 Sequence
-1. Tagged union list ✓
-2. Benchmark tagged list ✓
-3. void* list ✓
-4. Benchmark void* list ✓
-5. Macro-generic list + arena allocator ← NEXT
-6. Design doc with measured comparisons
+## Phase 2 (kv store): epoll, robin hood hashmap, WAL, arena allocator
+## Target: Winter 2026 internship, systems/infra teams
 
 ## Next Immediate Action
-Start macro-generic list — same API, eliminate function pointer overhead via macros,
-add arena allocator, benchmark all three side by side.
-
-## Phase 2: kv store (epoll, robin hood hashmap, WAL, arena allocator)
-## Target: Winter 2026 internship, systems/infra teams
+Implement intrusive list + arena allocator (Phase 4)

@@ -1,25 +1,9 @@
-/*
- * bench.c — p50/p95/p99 latency benchmark for circular doubly-linked tagged-union list
- *
- * WHY BATCHING:
- *   clock_gettime(CLOCK_MONOTONIC) has a hardware/OS tick floor — on many
- *   machines (VMs, WSL, some kernels) that floor is ~1-2 µs, meaning any
- *   single operation faster than the clock tick reads as a fixed constant.
- *   Fix: time BATCH operations in one clock sandwich, divide by BATCH.
- *   Each reported sample = average latency over BATCH ops.
- *
- * Compile (optimised — matches real usage):
- *   gcc -I. -O2 -o bench bench.c list.c
- * Compile (no-optimise — raw instruction cost, less compiler magic):
- *   gcc -I. -O0 -o bench bench.c list.c
- */
-
 #define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "list.h"
+#include "tagged_list.h"
 
 #define N      1000    /* outer iterations — number of latency samples    */
 #define BATCH  1000    /* ops per sample — amortises clock resolution      */
