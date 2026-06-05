@@ -1,7 +1,6 @@
 #ifndef LIST_H
 #define LIST_H
 #include <stdlib.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* DEFINE_LIST FOR ALL DATA TYPES */

@@ -7,6 +7,11 @@ ASAN_FLAGS = -fsanitize=address,undefined -g3
 
 ASAN_RUN   = ASAN_OPTIONS=detect_leaks=0 
 
+listi: 
+	$(CC) $(CFLAGS) -I intrusive_list/ -o intrusive_list/test intrusive_list/test.c 
+	@echo "--- RUNNING INTRUSIVE LIST ---" 
+	./intrusive_list/test
+
 listvp: 
 	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I void_list/ -o main.out main.c void_list/list_vp.c
 	@echo "--- RUNNING MOTHER SANDBOX--"
