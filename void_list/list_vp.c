@@ -131,17 +131,19 @@ void free_list(Node **head)
     {
         return;
     }
-    Node *curr = *head;
-    Node *temp = *head; // keep one pointer to read a value to avoid dangling pointer
-    Node *next = NULL;
-    do
-    {
-        next = curr->next;
+    Node* start = *head;
+    Node* curr = start->next;
+
+    while(curr != start) {
+        Node* next = curr->next; 
         free(curr->data);
         free(curr);
-        curr = next;
-    } while (curr != temp);
 
+        curr = next;
+    }
+
+    free(start->data);
+    free(start);
     *head = NULL;
 }
 

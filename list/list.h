@@ -123,21 +123,23 @@
     static inline void T##_free_list(T##Node **head)                   \
     {                                                                  \
                                                                        \
-        if (*head == NULL)                                             \
+        if (*head == NULL || head == NULL)                             \
         {                                                              \
             return;                                                    \
         }                                                              \
                                                                        \
-        T##Node *curr = *head;                                         \
-        T##Node *first = *head;                                        \
-        T##Node *next = NULL;                                          \
+        T##Node *start = *head;                                        \
+        T##Node *curr = start->next;                                   \
                                                                        \
-        do                                                             \
+        while (curr != start)                                          \
         {                                                              \
-            next = curr->next;                                         \
+            Node *next = curr->next;                                   \
+            free(curr->data);                                          \
             free(curr);                                                \
             curr = next;                                               \
-        } while (curr != first);                                       \
+        }                                                              \
+        free(start->data);                                             \
+        free(start);                                                   \
                                                                        \
         *head = NULL;                                                  \
     }                                                                  \
@@ -264,22 +266,23 @@
     static inline void str_free_list(strNode **head)                    \
     {                                                                   \
                                                                         \
-        if (*head == NULL)                                              \
+        if (*head == NULL || head == NULL)                              \
         {                                                               \
             return;                                                     \
         }                                                               \
                                                                         \
-        strNode *curr = *head;                                          \
-        strNode *first = *head;                                         \
-        strNode *next = NULL;                                           \
+        T##Node *start = *head;                                         \
+        T##Node *curr = start->next;                                    \
                                                                         \
-        do                                                              \
+        while (curr != start)                                           \
         {                                                               \
-            next = curr->next;                                          \
+            Node *next = curr->next;                                    \
             free(curr->data);                                           \
             free(curr);                                                 \
             curr = next;                                                \
-        } while (curr != first);                                        \
+        }                                                               \
+        free(start->data);                                              \
+        free(start);                                                    \
                                                                         \
         *head = NULL;                                                   \
     }                                                                   \

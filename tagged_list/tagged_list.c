@@ -136,20 +136,25 @@ void free_list(Node **head)
 {   
 
     if(head == NULL || *head == NULL) {
-        if(head) *head = NULL;
         return; 
     }
     
-    Node *temp = *head;
-    Node *first = *head;
-    do
-    {
-        Node *next = temp->next;
-        if (temp->kind == STRING)
-            free(temp->data.node_string);
-        free(temp);
-        temp = next;
-    } while (temp != first);
+    Node *start = *head;
+    Node *curr = start->next;
+
+    while(curr != start) {
+        Node* next = curr->next;
+
+        if(curr->kind == STRING) 
+            free(curr->data.node_string);
+        free(curr);
+        curr = next;
+    } 
+
+    if(start->kind == STRING) {
+        free(start->data.node_string);
+    }
+    free(start);
 
     *head = NULL; // prevents use-after-free
 }

@@ -52,16 +52,17 @@ bench_tagged:
 	./tagged_list/tagged_bench
 
 test_vp:
-	$(CC) $(CFLAGS) $(DEBUG) -I void_list/ -o void_list/test void_list/test_vp.c void_list/list_vp.c
-	./void_list/test
+	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I void_list/ -o void_list/test_vp void_list/test_vp.c void_list/list_vp.c
+	./void_list/test_vp
 
 valgrind_vp:
-	$(CC) $(CFLAGS) $(DEBUG) -I void_list/ -o void_list/test void_list/test_vp.c void_list/list_vp.c
-	valgrind --leak-check=full --track-origins=yes ./void_list/test
+	$(CC) $(CFLAGS) $(DEBUG) -I void_list/ -o void_list/test_vp void_list/test_vp.c void_list/list_vp.c
+	valgrind --leak-check=full --track-origins=yes ./void_list/test_vp
 
 bench_vp:
 	$(CC) $(CFLAGS) $(RELEASE) -I void_list/ -o void_list/bench void_list/bench_vp.c void_list/list_vp.c
 	./void_list/bench
 
 clean:
-	rm -f tagged_list/test tagged_list/tagged_bench void_list/test_vp void_list/bench_vp list/bench_macro list/test_macro
+	rm -f tagged_list/test tagged_list/tagged_bench tagged_list/test
+	 void_list/test_vp void_list/bench_vp list/bench_macro list/test_macro
