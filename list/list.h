@@ -133,12 +133,12 @@
                                                                        \
         while (curr != start)                                          \
         {                                                              \
-            Node *next = curr->next;                                   \
-            free(curr->data);                                          \
+            T##Node *next = curr->next;                                \
+                                                                       \
             free(curr);                                                \
             curr = next;                                               \
         }                                                              \
-        free(start->data);                                             \
+                                                                       \
         free(start);                                                   \
                                                                        \
         *head = NULL;                                                  \
@@ -271,12 +271,12 @@
             return;                                                     \
         }                                                               \
                                                                         \
-        T##Node *start = *head;                                         \
-        T##Node *curr = start->next;                                    \
+        strNode *start = *head;                                         \
+        strNode *curr = start->next;                                    \
                                                                         \
         while (curr != start)                                           \
         {                                                               \
-            Node *next = curr->next;                                    \
+            strNode *next = curr->next;                                 \
             free(curr->data);                                           \
             free(curr);                                                 \
             curr = next;                                                \

@@ -28,12 +28,12 @@ listvp_valgrind:
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./main.out
 
 test_macro : 
-	$(CC) $(CFLAGS) $(DEBUG) -I list/ -o list/test_macro list/test_macro.c 
-	./list/test_macro
+	$(CC) $(CFLAGS) $(DEBUG) -I list/ -o list/test list/test_macro.c 
+	./list/test
 
 valgrind_macro: 
-	$(CC) $(CFLAGS) $(DEBUG) -I list/ -o list/test_macro list/test_macro.c
-	valgrind --leak-check=full --track-origins=yes ./list/test_macro
+	$(CC) $(CFLAGS) $(DEBUG) -I list/ -o list/test list/test_macro.c
+	valgrind --leak-check=full --track-origins=yes ./list/test
 
 bench_macro:
 	$(CC) $(CFLAGS) $(RELEASE) -I list/ -o list/bench_macro list/bench_macro.c
@@ -52,12 +52,12 @@ bench_tagged:
 	./tagged_list/tagged_bench
 
 test_vp:
-	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I void_list/ -o void_list/test_vp void_list/test_vp.c void_list/list_vp.c
-	./void_list/test_vp
+	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I void_list/ -o void_list/test void_list/test_vp.c void_list/list_vp.c
+	./void_list/test
 
 valgrind_vp:
-	$(CC) $(CFLAGS) $(DEBUG) -I void_list/ -o void_list/test_vp void_list/test_vp.c void_list/list_vp.c
-	valgrind --leak-check=full --track-origins=yes ./void_list/test_vp
+	$(CC) $(CFLAGS) $(DEBUG) -I void_list/ -o void_list/test void_list/test_vp.c void_list/list_vp.c
+	valgrind --leak-check=full --track-origins=yes ./void_list/test
 
 bench_vp:
 	$(CC) $(CFLAGS) $(RELEASE) -I void_list/ -o void_list/bench void_list/bench_vp.c void_list/list_vp.c
@@ -65,4 +65,5 @@ bench_vp:
 
 clean:
 	rm -f tagged_list/test tagged_list/tagged_bench tagged_list/test
-	 void_list/test_vp void_list/bench_vp list/bench_macro list/test_macro
+	 void_list/test void_list/bench_vp list/bench_macro list/test
+	 
