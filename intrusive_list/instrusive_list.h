@@ -2,9 +2,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include<stdbool.h>
+#include <stdbool.h>
 
-/*  
+/*
  * struct list - intrusive circular doubly linked list node
 
  * Embed this inside any struct you want to link. The list has no separate
@@ -52,10 +52,10 @@ static inline void *list_entry_offset(list *what, size_t offset)
     if (what)
     {
         // cast list* - > void* then -> uintptr_t (becomes an integer)
-        return (void *)(((char*)(void *)what) - offset);
+        return (void *)(((char *)(void *)what) - offset);
     }
     return NULL;
-} 
+}
 
 /**
  * list_entry() - get parent container of list entry
@@ -72,7 +72,7 @@ static inline void *list_entry_offset(list *what, size_t offset)
  * Return: Pointer to parent container, or NULL.
  */
 #define list_entry(_what, _t, _m) \
-        ((_t *) list_entry_offset((_what), offsetof(_t, _m)))
+    ((_t *)list_entry_offset((_what), offsetof(_t, _m)))
 
 /*
  * list_is_linked - check whether a node is currently in a list
@@ -81,9 +81,10 @@ static inline void *list_entry_offset(list *what, size_t offset)
  * the state left by list_init() and list_unlink(). Returns true if either
  * pointer points elsewhere, meaning the node has neighbors.
  */
-static inline _Bool list_is_linked(const list* what) {
+static inline bool list_is_linked(const list *what)
+{
     return what && (what->next != what || what->prev != what);
-} 
+}
 
 /*
  * list_is_empty - check whether an anchor node's list is empty
@@ -92,9 +93,10 @@ static inline _Bool list_is_linked(const list* what) {
  * Equivalent to !list_is_linked(). Callers pass the anchor, not a data node.
  */
 
-static inline _Bool list_is_empty(const list* what) {
-    return !list_is_linked(what); // only anchor node is empty 
-} 
+static inline bool list_is_empty(const list *what)
+{
+    return !list_is_linked(what); // only anchor node is empty
+}
 
 /*
  * list_add_before - insert a node immediately before another node
@@ -114,14 +116,16 @@ static inline _Bool list_is_empty(const list* what) {
  *
  * Primitive list operation.
  */
-static inline void list_add_before(list* pos, list* node) {
+static inline void list_add_before(list *pos, list *node)
+{
     pos->prev->next = node;
     node->prev = pos->prev;
     pos->prev = node;
     node->next = pos;
-} 
+}
 
-static inline list_add_tail(list* head, list*node) {
+static inline void list_add_tail(list *head, list *node)
+{
     list_add_before(head, node);
 }
 
@@ -143,12 +147,13 @@ static inline list_add_tail(list* head, list*node) {
  *
  * Primitive list operation.
  */
-static inline void list_add_after(list* pos, list* node) {
-    pos->next->prev = node; 
+static inline void list_add_after(list *pos, list *node)
+{
+    pos->next->prev = node;
     node->next = pos->next;
     node->prev = pos;
     pos->next = node;
-} 
+}
 
 static inline void list_push_front(list *head, list *node)
 {
@@ -174,12 +179,13 @@ static inline void list_push_front(list *head, list *node)
  *
  * Lowest-level insertion primitive.
  */
-static inline void list_add_between(list* left, list* right, list* node) {
-    left->next = node;
-    right->prev = node;
+static inline void list_add_between(list *left, list *right, list *node)
+{
     node->next = right;
     node->prev = left;
-} 
+    left->next = node;
+    right->prev = node;
+}
 
 /*
  * list_unlink_stale - remove a node without reinitializing it
@@ -197,7 +203,8 @@ static inline void list_add_between(list* left, list* right, list* node) {
  *
  * Internal primitive used when caller manages node state manually.
  */
-static inline void list_unlink_stale(list* node) {
+static inline void list_unlink_stale(list *node)
+{
     node->prev->next = node->next;
     node->next->prev = node->prev;
 }
@@ -219,15 +226,17 @@ static inline void list_unlink_stale(list* node) {
  *
  * Preferred public removal operation.
  */
-static inline void list_unlink(list* node) {
+static inline void list_unlink(list *node)
+{
 
-    if(list_is_linked(node)) {
+    if (list_is_linked(node))
+    {
         node->prev->next = node->next;
         node->next->prev = node->prev;
 
         list_init(node);
     }
-}  
+}
 /*
  * list_pop_front - remove and return the first node
  *
@@ -241,17 +250,19 @@ static inline void list_unlink(list* node) {
  *
  * Container operation.
  */
-static inline list* list_pop_front(list* head) {
-    if(list_is_empty(head)) {
+static inline list *list_pop_front(list *head)
+{
+    if (list_is_empty(head))
+    {
         return NULL;
     }
 
-    list* pop = head->next; 
+    list *pop = head->next;
 
     list_unlink(pop);
 
     return pop;
-} 
+}
 
 /*
  * list_pop_back - remove and return the last node
@@ -266,12 +277,14 @@ static inline list* list_pop_front(list* head) {
  *
  * Container operation.
  */
-static inline list* list_pop_back(list* head) {
-    if(list_is_empty(head)) {
+static inline list *list_pop_back(list *head)
+{
+    if (list_is_empty(head))
+    {
         return NULL;
-    } 
+    }
 
-    list* node = head->prev; 
+    list *node = head->prev;
 
     list_unlink(node);
 
@@ -297,15 +310,14 @@ static inline list* list_pop_back(list* head) {
  * Useful for replacing embedded container objects without
  * changing surrounding list topology.
  */
-static inline void list_replace(list* old, list* new) {
+static inline void list_replace(list *old, list *new)
+{
 
     new->next = old->next;
-    new->prev = old->prev; 
+    new->prev = old->prev;
 
     old->prev->next = new;
-    old->next->prev = new; 
-
-
+    old->next->prev = new;
 }
 /*
  * list_replace_init - replace a node and detach the old one
@@ -322,9 +334,10 @@ static inline void list_replace(list* old, list* new) {
  *   - @new occupies @old's position.
  *   - @old becomes self-linked.
  */
-static inline void list_replace_init(list* old, list* new) {
+static inline void list_replace_init(list *old, list *new)
+{
 
-    list_replace(old,new);
+    list_replace(old, new);
     list_init(old);
 }
 
@@ -348,15 +361,44 @@ static inline void list_replace_init(list* old, list* new) {
  *
  * Node contents are not modified; only list topology changes.
  */
-static inline void list_swap(list* entry1, list* entry2) {
+static inline void list_swap(list *entry1, list *entry2)
+{
 
-    list* pos = entry2->prev;
+    list *pos = entry2->prev;
 
     list_unlink_stale(entry2);
 
     list_replace(entry1, entry2);
 
-    if(pos == entry1) 
-        pos = entry2; 
-    list_add_after(pos,entry1);
+    if (pos == entry1)
+        pos = entry2;
+    list_add_after(pos, entry1);
 }
+
+static inline bool list_is_first(const list *node, const list *head)
+{
+    return node->prev == head;
+}
+
+static inline list_is_last(const list *node, const list *head)
+{
+    return node->next == head;
+}
+static inline bool list_splice(list *list1, list *list2)
+{
+}
+
+
+#define list_for_each(pos, head) \
+    for ((pos) != (head)->next; (pos) != head; (pos) = pos->next)
+
+#define list_for_each_safe(pos, n, head)          \
+    for ((pos) = (head)->next, (n) = (pos)->next; \
+         (pos) != (head);                         \
+         (pos) = (n), (n) = (pos)->next)
+#define list_for_each_entry(_ptr, _head, _m)            \
+    for ((_ptr) = list_entry((_head)->next,             \
+                             typeof(*(_ptr)), _m);      \
+         &(_ptr)->_m != (_head);                        \
+         (_ptr) = list_entry((_ptr)->_m.next,           \
+                             typeof(*(_ptr)), _m))
