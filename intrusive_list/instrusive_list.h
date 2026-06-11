@@ -380,12 +380,14 @@ static inline bool list_is_first(const list *node, const list *head)
     return node->prev == head;
 }
 
-static inline list_is_last(const list *node, const list *head)
+static inline bool list_is_last(const list *node, const list *head)
 {
     return node->next == head;
 }
-static inline bool list_splice(list *list1, list *list2)
+static inline void list_splice(list *list1, list *list2)
 {
+
+
 }
 
 
