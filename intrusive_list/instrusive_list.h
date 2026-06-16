@@ -374,33 +374,70 @@ static inline void list_swap(list *entry1, list *entry2)
         pos = entry2;
     list_add_after(pos, entry1);
 }
-
+/**
+ * list_first() -  check if the node is first element
+ * @node:           node to check
+ * @head:           sentinal node
+ *
+ * This check if the node is first. Return true or false
+ *
+ */
 static inline bool list_is_first(const list *node, const list *head)
 {
     return node->prev == head;
 }
 
+/**
+ * list_last() -   check if the node is last element
+ * @node:           node to check
+ * @head:           sentinal node
+ *
+ * This check if the node is last. Return true or false
+ *
+ */
 static inline bool list_is_last(const list *node, const list *head)
 {
     return node->next == head;
 }
-static inline void list_splice(list *list1, list *list2)
+
+/* list_splice() - splice one list into another
+ * @target:     the list to splice into
+ * @source:     the list to splice
+ *
+ * This removes all the entries from @source and splice them into @target.
+ * The order of the two lists is preserved and the source is appended
+ * to the end of target.
+ *
+ * On return, the source list will be empty.
+ */
+
+static inline void list_splice(list *target, list *source)
 {
+    if (!list_is_empty(source))
+    {
+        /* attach front of @source to the tail of @target*/
+        source->next->prev = target->prev;
+        target->prev->next = source->next;
+        /* attach the tail of @source to the target head */
+        source->prev->next = target;
+        target->prev = source->prev;
 
-
+        // clear the target
+        *source = (list)LIST_INIT(*source);
+    }
 }
 
-
 #define list_for_each(pos, head) \
-    for ((pos) != (head)->next; (pos) != head; (pos) = pos->next)
+    for ((pos) = (head)->next; (pos) != head; (pos) = pos->next)
 
 #define list_for_each_safe(pos, n, head)          \
     for ((pos) = (head)->next, (n) = (pos)->next; \
          (pos) != (head);                         \
          (pos) = (n), (n) = (pos)->next)
-#define list_for_each_entry(_ptr, _head, _m)            \
-    for ((_ptr) = list_entry((_head)->next,             \
-                             typeof(*(_ptr)), _m);      \
-         &(_ptr)->_m != (_head);                        \
-         (_ptr) = list_entry((_ptr)->_m.next,           \
-                             typeof(*(_ptr)), _m))
+
+#define list_for_each_entry(_ptr, _head, _m)           \
+    for ((_ptr) = list_entry((_head)->next,            \
+                             __typeof__(*(_ptr)), _m); \
+         &(_ptr)->_m != (_head);                       \
+         (_ptr) = list_entry((_ptr)->_m.next,          \
+                             __typeof__(*(_ptr)), _m))
