@@ -237,6 +237,7 @@ static inline void list_unlink(list *node)
         list_init(node);
     }
 }
+
 /*
  * list_pop_front - remove and return the first node
  *
@@ -435,9 +436,19 @@ static inline void list_splice(list *target, list *source)
          (pos) != (head);                         \
          (pos) = (n), (n) = (pos)->next)
 
-#define list_for_each_entry(_ptr, _head, _m)           \
-    for ((_ptr) = list_entry((_head)->next,            \
-                             __typeof__(*(_ptr)), _m); \
-         &(_ptr)->_m != (_head);                       \
-         (_ptr) = list_entry((_ptr)->_m.next,          \
+#define list_for_each_entry(_ptr, _head, _m)            \
+    for ((_ptr) = list_entry((_head)->next,             \
+                             __typeof__(*(_ptr)), _m);  \
+         &(_ptr)->_m != (_head);                        \
+         (_ptr) = list_entry((_ptr)->_m.next,           \
                              __typeof__(*(_ptr)), _m))
+
+static inline size_t list_length(const list* head) {
+
+    size_t cnt = 0;
+    const list * iter;
+    list_for_each(iter, head) {
+        ++cnt;
+    }    
+    return cnt;
+}

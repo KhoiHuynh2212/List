@@ -8,10 +8,19 @@ ASAN_FLAGS = -fsanitize=address,undefined -g
 ASAN_RUN   = ASAN_OPTIONS=detect_leaks=0 
 
 listi: 
-	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I intrusive_list/ -o intrusive_list/test intrusive_list/test.c 
+	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I intrusive_list/ -o intrusive_list/test intrusive_list/test-api.c 
 	@echo "--- RUNNING INTRUSIVE LIST ---" 
 	./intrusive_list/test
 
+listi2: 
+	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I intrusive_list/ -o intrusive_list/test2 intrusive_list/test-em.c 
+	@echo "--- RUNNING INTRUSIVE LIST ---" 
+	./intrusive_list/test2	
+
+bench_i:
+	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I intrusive_list/ -o intrusive_list/bench intrusive_list/bench_intrusive.c
+	@echo "--- RUNNING INTRUSIVE LIST ---" 
+	./intrusive_list/bench
 listvp: 
 	$(CC) $(CFLAGS) $(ASAN_FLAGS) -I void_list/ -o main.out main.c void_list/list_vp.c
 	@echo "--- RUNNING MOTHER SANDBOX--"
