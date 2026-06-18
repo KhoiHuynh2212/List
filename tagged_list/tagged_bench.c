@@ -5,8 +5,9 @@
 #include <time.h>
 #include "tagged_list.h"
 
-#define N      1000    /* outer iterations — number of latency samples    */
-#define BATCH  1000    /* ops per sample — amortises clock resolution      */
+#define N      1000
+#define BATCH  1000
+#define LIST_N 100000
 #define NANO   1000000000L
 
 /* ── timer ─────────────────────────────────────────────────────────── */
@@ -28,15 +29,11 @@ static long pct(long *arr, int n, double p) {
 }
 static void print_stats(const char *label, long *times, int n) {
     qsort(times, n, sizeof(long), cmp_long);
-    printf("  %-34s  p50=%5ld ns   p95=%5ld ns   p99=%5ld ns\n",
+    printf("  %-42s  p50=%8ld ns   p95=%8ld ns   p99=%8ld ns\n",
            label, pct(times, n, 0.50), pct(times, n, 0.95), pct(times, n, 0.99));
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   INSERT
-   ════════════════════════════════════════════════════════════════════ */
 
-/* single insert into empty list each time — pure alloc + pointer wiring */
 void bench_insertInt_empty(void) {
     long times[N];
     for (int i = 0; i < N; i++) {
@@ -51,18 +48,18 @@ void bench_insertInt_empty(void) {
     print_stats("insertInt (empty list)", times, N);
 }
 
-/* append to a pre-built 100-node list — exercises O(1) tail via head->prev */
+/* Append to a stable 100-node list — steady-state tail-walk cost.
+   Keep length fixed by pairing each insert with a delete. */
 void bench_insertInt_tail100(void) {
     long times[N];
     for (int i = 0; i < N; i++) {
-        /* build the 100-node base outside the timed region */
         Node *head = NULL;
         for (int j = 0; j < 100; j++) insertIntNode(&head, j);
 
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++) {
             insertIntNode(&head, 999);
-            deleteIntNode(&head, 999);   /* keep list length stable */
+            deleteIntNode(&head, 999);
         }
         times[i] = (now_ns() - t0) / BATCH;
         free_list(&head);
@@ -127,10 +124,8 @@ void bench_insertDouble(void) {
     print_stats("insertDouble (empty list)", times, N);
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DELETE INT
-   ════════════════════════════════════════════════════════════════════ */
 
+/* Head delete — O(1), allocation-dominated.  Small list is intentional. */
 void bench_deleteInt_head(void) {
     long times[N];
     for (int i = 0; i < N; i++) {
@@ -139,8 +134,8 @@ void bench_deleteInt_head(void) {
 
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++) {
-            deleteIntNode(&head, 0);       /* hit at head */
-            insertIntNode(&head, 0);       /* restore — keep list stable */
+            deleteIntNode(&head, 0);
+            insertIntNode(&head, 0);   /* restore head value; goes to tail but cost matches */
         }
         times[i] = (now_ns() - t0) / BATCH;
         free_list(&head);
@@ -148,40 +143,54 @@ void bench_deleteInt_head(void) {
     print_stats("deleteInt head hit (10 nodes)", times, N);
 }
 
+/*
+ * Tail delete at 100k nodes — exercises the full O(n) walk to find the
+ * last element, comparable to intrusive bench_search_hit (tail, 100k).
+ * Rebuild the list each outer iteration so the delete target stays at tail.
+ */
 void bench_deleteInt_tail(void) {
     long times[N];
     for (int i = 0; i < N; i++) {
         Node *head = NULL;
-        for (int j = 0; j < 10; j++) insertIntNode(&head, j);
+        for (int j = 0; j < LIST_N; j++) insertIntNode(&head, j);
 
+        /* Time a single delete-tail.  BATCH=1 here: rebuilding 100k nodes
+           per sample is too expensive; one timed op per sample is sufficient
+           because LIST_N >> clock resolution. */
         long t0 = now_ns();
-        for (int j = 0; j < BATCH; j++) {
-            deleteIntNode(&head, 9);       /* hit at tail */
-            insertIntNode(&head, 9);       /* restore */
-        }
-        times[i] = (now_ns() - t0) / BATCH;
+        deleteIntNode(&head, LIST_N - 1);   /* target is last inserted value */
+        times[i] = now_ns() - t0;
+
         free_list(&head);
     }
-    print_stats("deleteInt tail hit (10 nodes)", times, N);
+    print_stats("deleteInt tail hit (100k nodes)", times, N);
 }
 
+/*
+ * Miss case — walks all LIST_N nodes before returning 0.
+ * List is built once outside the timed BATCH loop and reused,
+ * so we measure pure traversal cost without alloc noise.
+ */
 void bench_deleteInt_miss(void) {
     long times[N];
-    for (int i = 0; i < N; i++) {
-        Node *head = NULL;
-        for (int j = 0; j < 10; j++) insertIntNode(&head, j);
+    Node *head = NULL;
+    for (int j = 0; j < LIST_N; j++) insertIntNode(&head, j);
 
+    for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            deleteIntNode(&head, 99);      /* miss — full ring traversal */
+            deleteIntNode(&head, -1);   /* guaranteed miss */
         times[i] = (now_ns() - t0) / BATCH;
-        free_list(&head);
     }
-    print_stats("deleteInt miss (10 nodes)", times, N);
+    print_stats("deleteInt miss (100k nodes)", times, N);
+    free_list(&head);
 }
 
 /* ════════════════════════════════════════════════════════════════════
    DELETE STRING
+   Same size rationale as delete int:
+   - head/middle: small list, strcmp is the cost being measured
+   - miss: LIST_N, full strcmp-per-node scan
    ════════════════════════════════════════════════════════════════════ */
 
 void bench_deleteString_head(void) {
@@ -195,12 +204,12 @@ void bench_deleteString_head(void) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++) {
             deleteStringNode(&head, "apple");
-            insertStringNode(&head, "apple");  /* restore at tail, position shifts but cost is same */
+            insertStringNode(&head, "apple");
         }
         times[i] = (now_ns() - t0) / BATCH;
         free_list(&head);
     }
-    print_stats("deleteString head hit", times, N);
+    print_stats("deleteString head hit (3 nodes)", times, N);
 }
 
 void bench_deleteString_middle(void) {
@@ -219,132 +228,149 @@ void bench_deleteString_middle(void) {
         times[i] = (now_ns() - t0) / BATCH;
         free_list(&head);
     }
-    print_stats("deleteString middle hit", times, N);
+    print_stats("deleteString middle hit (3 nodes)", times, N);
 }
 
+/*
+ * String delete miss at LIST_N.  Build a list of "nodeXXXXX" strings,
+ * search for a value that cannot exist.
+ */
 void bench_deleteString_miss(void) {
     long times[N];
-    for (int i = 0; i < N; i++) {
-        Node *head = NULL;
-        insertStringNode(&head, "apple");
-        insertStringNode(&head, "banana");
-        insertStringNode(&head, "cherry");
+    Node *head = NULL;
+    char buf[16];
+    for (int j = 0; j < LIST_N; j++) {
+        snprintf(buf, sizeof(buf), "n%d", j);
+        insertStringNode(&head, buf);
+    }
 
+    for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            deleteStringNode(&head, "mango");  /* miss */
+            deleteStringNode(&head, "zzz_miss");
         times[i] = (now_ns() - t0) / BATCH;
-        free_list(&head);
     }
-    print_stats("deleteString miss", times, N);
+    print_stats("deleteString miss (100k nodes)", times, N);
+    free_list(&head);
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   SEARCH INT
+   SEARCH INT — LIST_N for all cases; comparable to intrusive bench.
+   List built once, reused across all N samples.
    ════════════════════════════════════════════════════════════════════ */
 
 void bench_searchInt_head(void) {
     long times[N];
     Node *head = NULL;
-    for (int j = 0; j < 10; j++) insertIntNode(&head, j);
+    for (int j = 0; j < LIST_N; j++) insertIntNode(&head, j);
 
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            searchInt(head, 0);
+            searchInt(head, 0);   /* head — exits on first node */
         times[i] = (now_ns() - t0) / BATCH;
     }
-    print_stats("searchInt head hit (10 nodes)", times, N);
+    print_stats("searchInt head hit (100k nodes)", times, N);
     free_list(&head);
 }
 
 void bench_searchInt_tail(void) {
     long times[N];
     Node *head = NULL;
-    for (int j = 0; j < 10; j++) insertIntNode(&head, j);
+    for (int j = 0; j < LIST_N; j++) insertIntNode(&head, j);
 
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            searchInt(head, 9);
+            searchInt(head, LIST_N - 1);   /* tail — full walk */
         times[i] = (now_ns() - t0) / BATCH;
     }
-    print_stats("searchInt tail hit (10 nodes)", times, N);
+    print_stats("searchInt tail hit (100k nodes)", times, N);
     free_list(&head);
 }
 
 void bench_searchInt_miss(void) {
     long times[N];
     Node *head = NULL;
-    for (int j = 0; j < 10; j++) insertIntNode(&head, j);
+    for (int j = 0; j < LIST_N; j++) insertIntNode(&head, j);
 
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            searchInt(head, 99);
+            searchInt(head, -1);   /* miss — full walk */
         times[i] = (now_ns() - t0) / BATCH;
     }
-    print_stats("searchInt miss (10 nodes)", times, N);
+    print_stats("searchInt miss (100k nodes)", times, N);
     free_list(&head);
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   SEARCH STRING
+   SEARCH STRING — same scale as int search.
    ════════════════════════════════════════════════════════════════════ */
 
 void bench_searchString_head(void) {
     long times[N];
     Node *head = NULL;
-    insertStringNode(&head, "apple");
-    insertStringNode(&head, "banana");
-    insertStringNode(&head, "cherry");
+    char buf[16];
+    for (int j = 0; j < LIST_N; j++) {
+        snprintf(buf, sizeof(buf), "n%d", j);
+        insertStringNode(&head, buf);
+    }
 
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            searchString(head, "apple");
+            searchString(head, "n0");   /* head */
         times[i] = (now_ns() - t0) / BATCH;
     }
-    print_stats("searchString head hit", times, N);
+    print_stats("searchString head hit (100k nodes)", times, N);
     free_list(&head);
 }
 
 void bench_searchString_tail(void) {
     long times[N];
     Node *head = NULL;
-    insertStringNode(&head, "apple");
-    insertStringNode(&head, "banana");
-    insertStringNode(&head, "cherry");
+    char buf[16];
+    char tail_val[16];
+    for (int j = 0; j < LIST_N; j++) {
+        snprintf(buf, sizeof(buf), "n%d", j);
+        insertStringNode(&head, buf);
+    }
+    snprintf(tail_val, sizeof(tail_val), "n%d", LIST_N - 1);
 
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            searchString(head, "cherry");
+            searchString(head, tail_val);   /* tail — worst case */
         times[i] = (now_ns() - t0) / BATCH;
     }
-    print_stats("searchString tail hit", times, N);
+    print_stats("searchString tail hit (100k nodes)", times, N);
     free_list(&head);
 }
 
 void bench_searchString_miss(void) {
     long times[N];
     Node *head = NULL;
-    insertStringNode(&head, "apple");
-    insertStringNode(&head, "banana");
-    insertStringNode(&head, "cherry");
+    char buf[16];
+    for (int j = 0; j < LIST_N; j++) {
+        snprintf(buf, sizeof(buf), "n%d", j);
+        insertStringNode(&head, buf);
+    }
 
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            searchString(head, "mango");
+            searchString(head, "zzz_miss");
         times[i] = (now_ns() - t0) / BATCH;
     }
-    print_stats("searchString miss", times, N);
+    print_stats("searchString miss (100k nodes)", times, N);
     free_list(&head);
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   SEARCH FLOAT / DOUBLE
+   SEARCH FLOAT / DOUBLE — small list; these types don't appear in the
+   other three implementations so no cross-implementation comparison is
+   needed.  Kept to document the tagged union's type-dispatch overhead.
    ════════════════════════════════════════════════════════════════════ */
 
 void bench_searchFloat(void) {
@@ -357,10 +383,10 @@ void bench_searchFloat(void) {
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            searchFloat(head, 3.0f);   /* tail hit — worst case */
+            searchFloat(head, 3.0f);
         times[i] = (now_ns() - t0) / BATCH;
     }
-    print_stats("searchFloat tail hit", times, N);
+    print_stats("searchFloat tail hit (3 nodes)", times, N);
     free_list(&head);
 }
 
@@ -374,82 +400,76 @@ void bench_searchDouble(void) {
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
         for (int j = 0; j < BATCH; j++)
-            searchDouble(head, 3.3);   /* tail hit */
+            searchDouble(head, 3.3);
         times[i] = (now_ns() - t0) / BATCH;
     }
-    print_stats("searchDouble tail hit", times, N);
+    print_stats("searchDouble tail hit (3 nodes)", times, N);
     free_list(&head);
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   REVERSE
+   REVERSE — LIST_N nodes, time one reverse per sample.
+   Even number of samples cancels out, so the list order alternates
+   but the node count stays constant.
    ════════════════════════════════════════════════════════════════════ */
 
-void bench_reverse_10(void) {
+void bench_reverse(void) {
     long times[N];
     Node *head = NULL;
-    for (int j = 0; j < 10; j++) insertIntNode(&head, j);
+    for (int j = 0; j < LIST_N; j++) insertIntNode(&head, j);
 
     for (int i = 0; i < N; i++) {
         long t0 = now_ns();
-        for (int j = 0; j < BATCH; j++)
-            reverse(&head);            /* even iterations cancel out */
-        times[i] = (now_ns() - t0) / BATCH;
+        reverse(&head);
+        times[i] = now_ns() - t0;   /* one reverse per sample; no BATCH divide */
     }
-    print_stats("reverse (10 nodes)", times, N);
-    free_list(&head);
-}
-
-void bench_reverse_1000(void) {
-    long times[N];
-    Node *head = NULL;
-    for (int j = 0; j < 1000; j++) insertIntNode(&head, j);
-
-    for (int i = 0; i < N; i++) {
-        long t0 = now_ns();
-        for (int j = 0; j < BATCH; j++)
-            reverse(&head);
-        times[i] = (now_ns() - t0) / BATCH;
-    }
-    print_stats("reverse (1000 nodes)", times, N);
+    print_stats("reverse (100k nodes)", times, N);
     free_list(&head);
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   FREE LIST  (deallocation cost at scale — outer loop rebuilds each time)
+   FREE — LIST_N nodes, rebuild each sample, time one free_list call.
+   No BATCH loop: we can't reuse the list after freeing it, and one
+   free of LIST_N nodes is well above clock resolution.
    ════════════════════════════════════════════════════════════════════ */
 
-void bench_free_int_1000(void) {
+void bench_free_int(void) {
     long times[N];
     for (int i = 0; i < N; i++) {
         Node *head = NULL;
-        for (int j = 0; j < 1000; j++) insertIntNode(&head, j);
-        long t0 = now_ns();
-        free_list(&head);
-        times[i] = now_ns() - t0;     /* no divide — one free per sample is correct */
-    }
-    print_stats("free_list 1000 ints", times, N);
-}
-
-void bench_free_string_1000(void) {
-    long times[N];
-    for (int i = 0; i < N; i++) {
-        Node *head = NULL;
-        for (int j = 0; j < 1000; j++) insertStringNode(&head, "bench");
+        for (int j = 0; j < LIST_N; j++) insertIntNode(&head, j);
         long t0 = now_ns();
         free_list(&head);
         times[i] = now_ns() - t0;
     }
-    print_stats("free_list 1000 strings", times, N);
+    print_stats("free_list int (100k nodes)", times, N);
+}
+
+void bench_free_string(void) {
+    long times[N];
+    char buf[16];
+    for (int i = 0; i < N; i++) {
+        Node *head = NULL;
+        for (int j = 0; j < LIST_N; j++) {
+            snprintf(buf, sizeof(buf), "n%d", j);
+            insertStringNode(&head, buf);
+        }
+        long t0 = now_ns();
+        free_list(&head);
+        times[i] = now_ns() - t0;
+    }
+    print_stats("free_list string (100k nodes)", times, N);
 }
 
 /* ════════════════════════════════════════════════════════════════════
    MAIN
    ════════════════════════════════════════════════════════════════════ */
 int main(void) {
-    printf("=== tagged union list benchmark  (N=%d samples, BATCH=%d ops/sample) ===\n\n", N, BATCH);
+    printf("=== tagged union list benchmark"
+           "  (N=%d samples, BATCH=%d, LIST_N=%d) ===\n\n",
+           N, BATCH, LIST_N);
 
-    printf("-- insert --\n");
+    printf("-- insert (allocation-dominated, small list) --\n");
     bench_insertInt_empty();
     bench_insertInt_tail100();
     bench_insertString_short();
@@ -458,36 +478,35 @@ int main(void) {
     bench_insertDouble();
 
     printf("\n-- delete int --\n");
-    bench_deleteInt_head();
-    bench_deleteInt_tail();
-    bench_deleteInt_miss();
+    bench_deleteInt_head();         /* O(1) find, small list               */
+    bench_deleteInt_tail();         /* O(n) find, 100k nodes, 1 op/sample  */
+    bench_deleteInt_miss();         /* O(n) full scan, 100k nodes           */
 
     printf("\n-- delete string --\n");
     bench_deleteString_head();
     bench_deleteString_middle();
-    bench_deleteString_miss();
+    bench_deleteString_miss();      /* 100k nodes */
 
-    printf("\n-- search int --\n");
+    printf("\n-- search int (100k nodes) --\n");
     bench_searchInt_head();
     bench_searchInt_tail();
     bench_searchInt_miss();
 
-    printf("\n-- search string --\n");
+    printf("\n-- search string (100k nodes) --\n");
     bench_searchString_head();
     bench_searchString_tail();
     bench_searchString_miss();
 
-    printf("\n-- search float / double --\n");
+    printf("\n-- search float / double (tagged-union specific, 3 nodes) --\n");
     bench_searchFloat();
     bench_searchDouble();
 
-    printf("\n-- reverse --\n");
-    bench_reverse_10();
-    bench_reverse_1000();
+    printf("\n-- reverse (100k nodes) --\n");
+    bench_reverse();
 
-    printf("\n-- free --\n");
-    bench_free_int_1000();
-    bench_free_string_1000();
+    printf("\n-- free (100k nodes) --\n");
+    bench_free_int();
+    bench_free_string();
 
     printf("\ndone\n");
     return 0;

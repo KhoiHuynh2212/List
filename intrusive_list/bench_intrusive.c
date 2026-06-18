@@ -57,7 +57,7 @@ static void print_percentiles(const char* label, uint64_t* samples, size_t n) {
     uint64_t p50 = samples[(size_t)(n * 0.50)];
     uint64_t p95 = samples[(size_t)(n * 0.95)];
     uint64_t p99 = samples[(size_t)(n * 0.99)];
-    printf("%-28s p50=%8llu ns   p95=%8llu ns   p99=%8llu ns\n",
+    printf("  %-42s  p50=%8llu ns   p95=%8llu ns   p99=%8llu ns\n",
            label, (unsigned long long)p50, (unsigned long long)p95, (unsigned long long)p99);
 }
 
